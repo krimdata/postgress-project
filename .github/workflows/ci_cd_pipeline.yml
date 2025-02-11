@@ -21,6 +21,11 @@ jobs:
           POSTGRES_DB: my_database
         ports:
           - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U admin -d my_database"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Checkout repository
@@ -32,8 +37,13 @@ jobs:
           sudo apt-get install -y python3-pip
           pip3 install psycopg2-binary
 
-      - name: Run database migrations
-        run: docker-compose up -d  # Lance PostgreSQL agit push -u origin main
+      - name: Wait for PostgreSQL to be ready
+        run: |
+          until pg_isready -h localhost -p 5432 -U admin; do
+            echo "Waiting for PostgreSQL to start..."
+            sleep 3
+          done
+          echo "PostgreSQL is ready!"
 
       - name: Import CSV data
         run: python3 scripts/import_csv_to_db.py
