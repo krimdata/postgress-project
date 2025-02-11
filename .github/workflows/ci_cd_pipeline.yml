@@ -33,7 +33,7 @@ jobs:
           pip3 install psycopg2-binary
 
       - name: Run database migrations
-        run: docker-compose up -d  # Lance PostgreSQL
+        run: docker-compose up -d  # Lance PostgreSQL agit push -u origin main
 
       - name: Import CSV data
         run: python3 scripts/import_csv_to_db.py
