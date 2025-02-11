@@ -12,16 +12,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:latest
-        env:
-          POSTGRES_USER: admin
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: my_database
-        ports:
-          - 5432:5432
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -29,18 +19,21 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-pip docker-compose
+          sudo apt-get install -y python3-pip
           pip3 install psycopg2-binary
 
-      - name: Start Docker service
+      - name: Set up Docker
         run: |
+          sudo apt-get install -y docker.io docker-compose
           sudo systemctl start docker
           sudo systemctl enable docker
+          docker --version
+          docker-compose --version
 
       - name: Start PostgreSQL container
         run: |
-          docker-compose -f docker-compose.yml up -d
-          sleep 10  # Laisser le temps au conteneur de démarrer
+          docker-compose up -d
+          sleep 10  # Attendre que PostgreSQL démarre
 
       - name: Check running containers
         run: docker ps -a
@@ -50,6 +43,7 @@ jobs:
 
       - name: Run KPI queries
         run: python3 scripts/run_queries.py
+
 
 
 
