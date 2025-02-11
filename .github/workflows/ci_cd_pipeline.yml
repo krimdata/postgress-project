@@ -1,0 +1,42 @@
+name: CI/CD for PostgreSQL in Docker
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: my_database
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip
+          pip3 install psycopg2-binary
+
+      - name: Run database migrations
+        run: docker-compose up -d  # Lance PostgreSQL
+
+      - name: Import CSV data
+        run: python3 scripts/import_csv_to_db.py
+
+      - name: Run KPI queries
+        run: python3 scripts/run_queries.py
