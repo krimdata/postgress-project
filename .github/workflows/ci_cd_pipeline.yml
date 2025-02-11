@@ -12,41 +12,43 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:latest
-        env:
-          POSTGRES_USER: admin
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: my_database
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U admin -d my_database"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Install dependencies
+      - name: Install Docker and Docker Compose
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-pip
-          pip3 install psycopg2-binary
+          sudo apt-get install -y docker.io docker-compose
+          sudo systemctl start docker
+          sudo systemctl enable docker
+
+      - name: Start PostgreSQL container
+        run: |
+          docker run -d \
+            --name my_postgres_db \
+            -e POSTGRES_USER=admin \
+            -e POSTGRES_PASSWORD=password \
+            -e POSTGRES_DB=my_database \
+            -p 5432:5432 \
+            postgres:latest
 
       - name: Wait for PostgreSQL to be ready
         run: |
-          until pg_isready -h localhost -p 5432 -U admin; do
+          until docker exec my_postgres_db pg_isready -U admin; do
             echo "Waiting for PostgreSQL to start..."
             sleep 3
           done
           echo "PostgreSQL is ready!"
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get install -y python3-pip
+          pip3 install psycopg2-binary
 
       - name: Import CSV data
         run: python3 scripts/import_csv_to_db.py
 
       - name: Run KPI queries
         run: python3 scripts/run_queries.py
+
